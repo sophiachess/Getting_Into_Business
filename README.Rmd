@@ -1,0 +1,99 @@
+---
+title: "README"
+output: 
+  github_document:
+    pandoc_args: ["--wrap=none"]
+always_allow_html: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+# Load required libraries
+library(httr)  # For making authenticated requests
+library(utils) # For downloading and unzipping
+
+# Define the Kaggle dataset URL (Make sure your API token is set up)
+url <- "https://www.kaggle.com/api/v1/datasets/download/fratzcan/usa-house-prices"
+
+# Define download destination
+destfile <- "./usa-house-prices.zip"
+
+# Download the file
+download.file(url, destfile, mode = "wb")
+
+# Extract the ZIP file
+unzip(destfile, exdir = "./usa-house-prices")
+
+# List the extracted files to check the exact CSV file name
+list.files("./usa-house-prices")
+
+# Read the CSV file (Replace with the actual extracted filename)
+housing_data <- read.csv("./usa-house-prices/USA Housing Dataset.csv")
+
+# View first few rows
+head(housing_data)
+
+```
+
+```{r}
+# Load necessary libraries 
+library(tidyverse)
+library(naniar)      # For missing data visualization
+library(ggcorrplot)  # For correlation plots
+library(gridExtra)   # For arranging multiple plots
+library(scales)      # For formatting labels
+
+# Read the dataset
+# Assuming the CSV file is in the working directory
+housing_data <- read.csv("USA Housing Dataset.csv")
+
+
+```
+
+
+```{r}
+# 1. Basic Structure and Overview
+# ----------------------------------
+# Display dataset structure
+str(housing_data)
+
+# Display first few rows
+head(housing_data)
+
+# Basic dimensions
+cat("Dataset dimensions:", dim(housing_data)[1], "rows and", dim(housing_data)[2], "columns\n")
+
+# 2. Summary Statistics
+# ---------------------
+# Numerical variable summaries
+numerical_summary <- housing_data %>%
+  select(price, bedrooms, bathrooms, sqft_living, sqft_lot, floors, 
+         waterfront, view, condition, sqft_above, sqft_basement, 
+         yr_built, yr_renovated) %>%
+  summary()
+
+print(numerical_summary)
+
+# Calculate standard deviation, range, etc. for numerical variables
+detailed_stats <- housing_data %>%
+  select(price, bedrooms, bathrooms, sqft_living, sqft_lot, floors, 
+         waterfront, view, condition, sqft_above, sqft_basement, 
+         yr_built, yr_renovated) %>%
+  summarise(across(everything(), 
+                  list(
+                    mean = ~mean(., na.rm = TRUE),
+                    median = ~median(., na.rm = TRUE),
+                    min = ~min(., na.rm = TRUE),
+                    max = ~max(., na.rm = TRUE),
+                    range = ~max(., na.rm = TRUE) - min(., na.rm = TRUE),
+                    sd = ~sd(., na.rm = TRUE),
+                    n_missing = ~sum(is.na(.))
+                  )))
+
+print(detailed_stats)
+
+```
