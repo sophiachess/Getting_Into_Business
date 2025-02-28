@@ -1,5 +1,6 @@
 ---
 title: "README"
+author: Sophia Hess
 output: 
   github_document:
     pandoc_args: ["--wrap=none"]
@@ -272,6 +273,58 @@ cat("- Most common property type: ",
     "-bedroom homes (", 
     round(max(table(housing_data$bedrooms))/nrow(housing_data)*100, 1), 
     "%)\n", sep="")
+```
 
+# Expanding Investment Knowledge
+## Additional Data Source: House Price Index (HPI)
+Beyond the USA Housing Dataset, incorporating additional data sources can 
+significantly enhance investment decision-making. One such dataset is the 
+**All-Transactions House Price Index (HPI)** for Washington-Arlington-Alexandria, 
+provided by the **Federal Reserve Economic Data (FRED)**: 
 
+**Dataset Link:** [FRED HPI - Washington-Arlington-Alexandria](https://fred.stlouisfed.org/series/ATNHPIUS47894Q)
+
+---
+
+## Why is this dataset useful?
+This dataset is valuable because it provides **macroeconomic context** for real 
+estate trends. Key benefits include:
+
+1. **Forward-looking indicators** – Helps predict housing market trends based 
+on historical price movements.
+2. **Regional economic health assessment** – A rising index may indicate a 
+strong local economy, while a declining index may suggest potential risks.
+3. **Long-term trends analysis** – Unlike transaction-based datasets, this 
+allows for a broader understanding of **housing appreciation** over time.
+
+## How does this dataset complement our current data analysis?
+While the **USA Housing Dataset** focuses on 
+**individual property characteristics and sales prices**, the **HPI dataset** 
+provides a **time-series perspective**, allowing us to:
+
+1. **Identify market cycles** – Recognize housing booms and downturns to 
+optimize investment timing.
+2. **Assess neighborhood growth potential** – Determine which areas are 
+experiencing sustained property value appreciation.
+3. **Perform risk assessment** – Compare micro-level data (individual home 
+sales) with macroeconomic trends to mitigate investment risks.
+
+---
+
+## Integrating the HPI dataset in R
+We can retrieve this dataset directly from FRED using the `quantmod` package in R:
+
+```{r}
+# Load necessary package
+library(quantmod)
+
+# Retrieve the HPI data from FRED
+getSymbols("ATNHPIUS47894Q", src = "FRED")
+
+# View the first few rows
+head(ATNHPIUS47894Q)
+
+# Plot the data to visualize trends
+plot(ATNHPIUS47894Q, main = "All-Transactions House Price Index (Washington-Arlington-Alexandria)",
+     col = "blue", lwd = 2, ylab = "HPI", xlab = "Year")
 ```
