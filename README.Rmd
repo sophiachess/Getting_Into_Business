@@ -10,9 +10,58 @@ always_allow_html: true
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-
+# Understanding the Data
+## When was the data acquired?
+Based on our analysis, the data appears to be from **2014**. 
+Specifically, all date entries in the dataset follow the `"2014-05-09"` format. 
+This suggests the dataset represents a **snapshot** of the housing market from 
+May to July 2014, rather than a **time series spanning multiple years**.
 ```{r}
-# Load required libraries
+# Checking unique dates in the dataset by inspecting the date column
+unique(housing_data$date)
+```
+
+## Where was the data acquired?
+The dataset covers housing properties in the state of **Washington (WA)**, 
+primarily focusing on the **Seattle metropolitan area and surrounding regions**. 
+```{r}
+# Viewing unique city names
+unique(housing_data$city)
+```
+
+## How was the data acquired?
+The dataset does not explicitly state its source, but based on its structured 
+format and detailed attributes, it appears to be compiled from:
+1. **Real estate transaction records**
+2. **Multiple Listing Service (MLS) data**
+
+## What are the attributes of this dataset?
+The date of transaction, sale price, number of bedrooms and bathrooms, interior 
+square footage, land square footage, number of floors, whether or not it is a 
+waterfront property, quality of its view (rating), condition of house (rating), 
+square footage above ground level, square footage of basement, year house was 
+built, year of last renovation, and address details including street name, city, 
+state, zip code, and country. 
+```{r}
+# Checking structure of dataset
+str(housing_data)
+```
+
+## What type of data do these attributes contain?
+Data Type	Attributes
+**Nominal** (Categorical, Unordered): street, city, state, zip code, country
+**Ordinal** (Categorical, Ordered): view, condition, waterfront
+**Numerical (Interval)**:	sale price, num bedrooms, num bathrooms, sqft_living, 
+sqft_lot, num floors, sqft_above, sqft_basement
+**Numerical (Ratio)**: yr_built, yr_renovated, date of transaction
+```{r}
+# Checking column data types
+sapply(housing_data, class)
+```
+
+# Data Summary & Initial Insights
+```{r}
+# Load necessary libraries
 library(httr)  # For making authenticated requests
 library(utils) # For downloading and unzipping
 
@@ -36,7 +85,6 @@ housing_data <- read.csv("./usa-house-prices/USA Housing Dataset.csv")
 
 # View first few rows
 head(housing_data)
-
 ```
 
 ```{r}
@@ -50,8 +98,6 @@ library(scales)      # For formatting labels
 # Read the dataset
 # Assuming the CSV file is in the working directory
 housing_data <- read.csv("USA Housing Dataset.csv")
-
-
 ```
 
 
@@ -70,6 +116,8 @@ cat("Dataset dimensions:", dim(housing_data)[1], "rows and", dim(housing_data)[2
 # 2. Summary Statistics
 # ---------------------
 # Numerical variable summaries
+summary(housing_data)
+
 numerical_summary <- housing_data %>%
   select(price, bedrooms, bathrooms, sqft_living, sqft_lot, floors, 
          waterfront, view, condition, sqft_above, sqft_basement, 
@@ -95,5 +143,135 @@ detailed_stats <- housing_data %>%
                   )))
 
 print(detailed_stats)
+
+# 3. Missing Value Analysis
+# -------------------------
+# Check for missing values
+missing_values <- colSums(is.na(housing_data))
+cat("Missing values per column:\n")
+print(missing_values)
+
+# Visualize missing data pattern (if there are missing values)
+if(sum(missing_values) > 0) {
+  miss_plot <- gg_miss_var(housing_data) + 
+    labs(title = "Missing Values by Variable")
+  print(miss_plot)
+}
+
+# 7. Calculate price per square foot
+# ---------------------------------
+housing_data$price_per_sqft <- housing_data$price / housing_data$sqft_living
+
+# Get the top 10 cities by count
+top_cities <- names(sort(table(housing_data$city), decreasing = TRUE)[1:10])
+
+# Filter for those cities
+city_data <- housing_data %>%
+  filter(city %in% top_cities)
+
+# Box plot of price per square foot by city
+p11 <- ggplot(city_data, aes(x = reorder(city, price_per_sqft, FUN = median), y = price_per_sqft)) +
+  geom_boxplot(fill = "lightblue") +
+  scale_y_continuous(labels = scales::dollar_format()) +
+  labs(title = "Price per Square Foot by City (Top 10 Cities)", 
+       x = "City", 
+       y = "Price per Square Foot") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+print(p11)
+
+# 8. Correlation Analysis
+# ----------------------
+# Create correlation matrix for numerical variables
+corr_vars <- housing_data %>%
+  select(price, bedrooms, bathrooms, sqft_living, sqft_lot, floors, 
+         waterfront, view, condition, sqft_above, sqft_basement, yr_built)
+
+correlation_matrix <- cor(corr_vars, use = "complete.obs")
+print(correlation_matrix)
+
+# Visualize correlation matrix
+p12 <- ggcorrplot(correlation_matrix, 
+           hc.order = TRUE, 
+           type = "lower", 
+           lab = TRUE, 
+           lab_size = 3,
+           colors = c("#6D9EC1", "white", "#E46726")) +
+  labs(title = "Correlation Matrix of Housing Features")
+
+print(p12)
+
+# 9. Outlier Detection
+# ------------------
+# Calculate z-scores for price
+housing_data$price_zscore <- (housing_data$price - mean(housing_data$price)) / sd(housing_data$price)
+
+# Identify outliers (z-score > 3 or < -3)
+price_outliers <- housing_data %>%
+  filter(abs(price_zscore) > 3) %>%
+  select(price, bedrooms, bathrooms, sqft_living, city, price_zscore) %>%
+  arrange(desc(price_zscore))
+
+cat("Number of price outliers:", nrow(price_outliers), "\n")
+print(head(price_outliers, 10))
+
+# 10. Analyze bedrooms to bathrooms ratio
+# -------------------------------------
+housing_data$bed_bath_ratio <- housing_data$bedrooms / housing_data$bathrooms
+
+p13 <- ggplot(housing_data, aes(x = bed_bath_ratio)) +
+  geom_histogram(fill = "purple", color = "black", bins = 30, alpha = 0.7) +
+  labs(title = "Distribution of Bedroom to Bathroom Ratio", 
+       x = "Bedrooms/Bathrooms Ratio", 
+       y = "Count") +
+  theme_minimal()
+
+print(p13)
+
+# 11. Summary of Key Findings
+# --------------------------
+cat("\n----- KEY FINDINGS FROM EXPLORATORY DATA ANALYSIS -----\n")
+
+# Calculate and print key metrics
+average_price <- mean(housing_data$price)
+median_price <- median(housing_data$price)
+price_range <- max(housing_data$price) - min(housing_data$price)
+avg_price_per_sqft <- mean(housing_data$price_per_sqft)
+top_price_cities <- housing_data %>%
+  group_by(city) %>%
+  summarise(avg_price = mean(price),
+            count = n()) %>%
+  filter(count >= 20) %>%
+  arrange(desc(avg_price)) %>%
+  head(3)
+
+cat("Average home price: $", formatC(average_price, format="f", digits=2, big.mark=","), "\n")
+cat("Median home price: $", formatC(median_price, format="f", digits=2, big.mark=","), "\n")
+cat("Price range: $", formatC(price_range, format="f", digits=2, big.mark=","), "\n")
+cat("Average price per square foot: $", formatC(avg_price_per_sqft, format="f", digits=2), "\n")
+cat("Top 3 most expensive cities (min 20 properties):\n")
+print(top_price_cities)
+
+# Calculate strongest correlations with price
+price_correlations <- correlation_matrix[1, ]
+top_correlated <- sort(abs(price_correlations), decreasing = TRUE)[2:4]
+cat("Strongest correlations with price:\n")
+for(i in 1:3) {
+  var_name <- names(top_correlated)[i]
+  corr_value <- price_correlations[var_name]
+  cat(var_name, ": ", round(corr_value, 3), "\n")
+}
+
+# Print dataset quality assessment
+cat("\nDataset Quality Assessment:\n")
+cat("- Missing values: ", if(sum(missing_values) == 0) "None" else sum(missing_values), "\n")
+cat("- Detected outliers: ", nrow(price_outliers), "\n")
+cat("- Most common property type: ", 
+    names(which.max(table(housing_data$bedrooms))), 
+    "-bedroom homes (", 
+    round(max(table(housing_data$bedrooms))/nrow(housing_data)*100, 1), 
+    "%)\n", sep="")
+
 
 ```
