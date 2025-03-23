@@ -328,3 +328,7 @@ head(ATNHPIUS47894Q)
 plot(ATNHPIUS47894Q, main = "All-Transactions House Price Index (Washington-Arlington-Alexandria)",
      col = "blue", lwd = 2, ylab = "HPI", xlab = "Year")
 ```
+```{r}
+knitr::knit("README.Rmd", output = "README.md")
+
+```
