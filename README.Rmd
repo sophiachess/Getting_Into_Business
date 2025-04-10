@@ -281,7 +281,21 @@ p11 <- ggplot(city_data, aes(x = reorder(city, price_per_sqft, FUN = median), y 
   theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
 print(p11)
+```
 
+# Explanation/Findings from the Box Plot
+It helps **visualize the distribution of price per square foot** for the top 10 cities in the dataset. 
+It also compares how housing affordability varies across different locations.
+
+
+**Observations:**
+
+1. There is a clear variability in pricing across cities, with some cities showing much higher median prices.
+2. A few cities have wider interquartile ranges and outliers, indicating greater pricing diversity within those areas.
+3. Other cities appear more uniform, suggesting consistent pricing per square foot.
+
+
+```{r}
 # 8. Correlation Analysis
 # ----------------------
 # Create correlation matrix for numerical variables
@@ -425,6 +439,24 @@ getSymbols("ATNHPIUS47894Q", src = "FRED")
 head(ATNHPIUS47894Q)
 
 # Plot the data to visualize trends
-plot(ATNHPIUS47894Q, main = "All-Transactions House Price Index (Washington-Arlington-Alexandria)",
-     col = "blue", lwd = 2, ylab = "HPI", xlab = "Year")
+plot(ATNHPIUS47894Q, 
+     main = "All-Transactions House Price Index (Washington-Arlington-Alexandria)",
+     col = "blue", lwd = 2,
+     ylab = "HPI", xlab = "Year")
+
 ```
+---
+## Why is this plot important?
+
+It shows the **All-Transactions House Price Index (HPI)** for the Washington-Arlington-Alexandria region over time. 
+
+This visualization helps understand how housing prices have changed in this metropolitan area.
+
+
+**Observations:**
+1. There is a steady increase in housing prices over the past few decades, especially after the 2012 recovery
+2. There is a noticeable dip around 2008–2010, aligning with the U.S. housing market crash during the financial crisis
+3. There is a recent rapid growth in prices, likely reflecting the pandemic-era housing demand surge and market inflation
+
+---
+
