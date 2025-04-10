@@ -137,28 +137,70 @@ str(housing_data)
     ##  $ statezip     : chr  "WA 98103" "WA 98014" "WA 98029" "WA 98117" ...
     ##  $ country      : chr  "USA" "USA" "USA" "USA" ...
 
-## What type of data do these attributes contain?
+## What type of data do these attributes hold?
 
 Data Type Attributes **Nominal** (Categorical, Unordered): street, city,
 state, zip code, country **Ordinal** (Categorical, Ordered): view,
-condition, waterfront **Numerical (Interval)**: sale price, num
-bedrooms, num bathrooms, sqft_living, sqft_lot, num floors, sqft_above,
-sqft_basement **Numerical (Ratio)**: yr_built, yr_renovated, date of
-transaction
+condition, waterfront **Numerical (Interval)**: None detected
+**Numerical (Ratio)**: sale price, num bedrooms, num bathrooms,
+sqft_living, sqft_lot, num floors, sqft_above, sqft_basement, yr_built,
+yr_renovated, date of transaction
 
 ``` r
-# Checking column data types
-sapply(housing_data, class)
+classify_data_types <- function(df) {
+  # Initialize empty lists for each type
+  nominal <- c()
+  ordinal <- c()
+  interval <- c()
+  ratio <- c()
+  
+  for (colname in names(df)) {
+    col <- df[[colname]]
+    
+    # Guessing types
+    if (is.character(col) || is.factor(col)) {
+      # Factors *might* be ordinal if they have levels with order
+      if (is.ordered(col)) {
+        ordinal <- c(ordinal, colname)
+      } else {
+        nominal <- c(nominal, colname)
+      }
+    } else if (is.numeric(col)) {
+      # Assume ratio by default (true zero exists)
+      ratio <- c(ratio, colname)
+    } else if (inherits(col, "Date") || inherits(col, "POSIXct")) {
+      # Dates are often treated as interval or ratio depending on use
+      interval <- c(interval, colname)
+    } else {
+      nominal <- c(nominal, colname)  # fallback
+    }
+  }
+  
+  # Create markdown table
+  cat("## Data Types of Attributes\n\n")
+  cat("| **Data Type** | **Attributes** |\n")
+  cat("|---------------|----------------|\n")
+  cat(sprintf("| **Nominal** | %s |\n", paste(nominal, collapse = ", ")))
+  cat(sprintf("| **Ordinal** | %s |\n", paste(ordinal, collapse = ", ")))
+  cat(sprintf("| **Interval** | %s |\n", ifelse(length(interval) > 0, paste(interval, collapse = ", "), "*(None detected)*")))
+  cat(sprintf("| **Ratio** | %s |\n", paste(ratio, collapse = ", ")))
+}
+
+housing_data$view <- factor(housing_data$view, ordered = TRUE)
+housing_data$condition <- factor(housing_data$condition, ordered = TRUE)
+housing_data$waterfront <- factor(housing_data$waterfront)  # If 0/1 or Yes/No
+
+classify_data_types(housing_data)
 ```
 
-    ##          date         price      bedrooms     bathrooms   sqft_living 
-    ##   "character"     "numeric"     "numeric"     "numeric"     "integer" 
-    ##      sqft_lot        floors    waterfront          view     condition 
-    ##     "integer"     "numeric"     "integer"     "integer"     "integer" 
-    ##    sqft_above sqft_basement      yr_built  yr_renovated        street 
-    ##     "integer"     "integer"     "integer"     "integer"   "character" 
-    ##          city      statezip       country 
-    ##   "character"   "character"   "character"
+    ## ## Data Types of Attributes
+    ## 
+    ## | **Data Type** | **Attributes** |
+    ## |---------------|----------------|
+    ## | **Nominal** | date, waterfront, street, city, statezip, country |
+    ## | **Ordinal** | view, condition |
+    ## | **Interval** | *(None detected)* |
+    ## | **Ratio** | price, bedrooms, bathrooms, sqft_living, sqft_lot, floors, sqft_above, sqft_basement, yr_built, yr_renovated |
 
 # Data Summary & Initial Insights
 
@@ -498,7 +540,7 @@ p11 <- ggplot(city_data, aes(x = reorder(city, price_per_sqft, FUN = median), y 
 print(p11)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
 
 ``` r
 # 8. Correlation Analysis
@@ -565,7 +607,7 @@ p12 <- ggcorrplot(correlation_matrix,
 print(p12)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-9-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-8-2.png)<!-- -->
 
 ``` r
 # 9. Outlier Detection
@@ -618,7 +660,7 @@ print(p13)
     ## Warning: Removed 2 rows containing non-finite outside the scale range
     ## (`stat_bin()`).
 
-![](README_files/figure-gfm/unnamed-chunk-9-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-8-3.png)<!-- -->
 
 ``` r
 # 11. Summary of Key Findings
@@ -854,4 +896,4 @@ plot(ATNHPIUS47894Q, main = "All-Transactions House Price Index (Washington-Arli
      col = "blue", lwd = 2, ylab = "HPI", xlab = "Year")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-10-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
