@@ -276,6 +276,9 @@ library(scales)      # For formatting labels
     ##     col_factor
 
 ``` r
+library(knitr)
+library(dplyr)
+
 # Read the dataset
 # Assuming the CSV file is in the working directory
 housing_data <- read.csv("USA Housing Dataset.csv")
@@ -341,6 +344,137 @@ cat("Dataset dimensions:", dim(housing_data)[1], "rows and", dim(housing_data)[2
 ```
 
     ## Dataset dimensions: 4140 rows and 18 columns
+
+``` r
+# --- Define variables by data type ---
+nominal_vars <- c("street", "city", "statezip", "country", "waterfront")
+ordinal_vars <- c("view", "condition")
+ratio_vars <- c("price", "bedrooms", "bathrooms", "sqft_living", "sqft_lot",
+                "floors", "sqft_above", "sqft_basement", "yr_built", "yr_renovated")
+
+# --- Helper function to calculate mode ---
+get_mode <- function(x) {
+  ux <- na.omit(unique(x))
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
+# --- Summary for Nominal Variables ---
+nominal_summary <- housing_data %>%
+  select(all_of(nominal_vars)) %>%
+  summarise(across(everything(),
+                   list(
+                     Mode = ~as.character(get_mode(.)),
+                     Missing = ~as.character(sum(is.na(.)))
+                   )))
+
+# Now pivot — no type mismatch since everything is character
+nominal_summary_long <- nominal_summary %>%
+  pivot_longer(
+    everything(),
+    names_to = c("Variable", ".value"),
+    names_sep = "_"
+  )
+
+# Display nicely
+kable(nominal_summary_long, caption = "Summary of Nominal Variables (Mode & Missing Count)")
+```
+
+| Variable   | Mode                  | Missing |
+|:-----------|:----------------------|:--------|
+| street     | 2520 Mulberry Walk NE | 0       |
+| city       | Seattle               | 0       |
+| statezip   | WA 98103              | 0       |
+| country    | USA                   | 0       |
+| waterfront | 0                     | 0       |
+
+Summary of Nominal Variables (Mode & Missing Count)
+
+``` r
+# --- Summary for Ordinal Variables (Frequency counts) ---
+ordinal_summary <- lapply(housing_data[ordinal_vars], function(x) as.data.frame(table(x)))
+names(ordinal_summary) <- ordinal_vars
+
+# Display each ordinal variable as a separate table
+for (var in names(ordinal_summary)) {
+  cat("\n\n")
+  cat("### Frequencies for Ordinal Variable:", var, "\n")
+  print(kable(ordinal_summary[[var]], col.names = c(var, "Frequency")))
+}
+```
+
+    ## 
+    ## 
+    ## ### Frequencies for Ordinal Variable: view 
+    ## 
+    ## 
+    ## |view | Frequency|
+    ## |:----|---------:|
+    ## |0    |      3722|
+    ## |1    |        56|
+    ## |2    |       186|
+    ## |3    |       111|
+    ## |4    |        65|
+    ## 
+    ## 
+    ## ### Frequencies for Ordinal Variable: condition 
+    ## 
+    ## 
+    ## |condition | Frequency|
+    ## |:---------|---------:|
+    ## |1         |         5|
+    ## |2         |        27|
+    ## |3         |      2596|
+    ## |4         |      1114|
+    ## |5         |       398|
+
+``` r
+# --- Summary for Ratio Variables ---
+ratio_summary <- housing_data %>%
+  select(all_of(ratio_vars)) %>%
+  summarise(across(everything(),
+                   list(
+                     Mean = ~round(mean(., na.rm = TRUE), 2),
+                     Median = ~median(., na.rm = TRUE),
+                     Min = ~min(., na.rm = TRUE),
+                     Max = ~max(., na.rm = TRUE),
+                     Range = ~max(., na.rm = TRUE) - min(., na.rm = TRUE),
+                     SD = ~round(sd(., na.rm = TRUE), 2),
+                     Missing = ~sum(is.na(.))
+                   ))) %>%
+  pivot_longer(everything(),
+               names_to = c("Variable", ".value"),
+               names_sep = "_")
+```
+
+    ## Warning: Expected 2 pieces. Additional pieces discarded in 42 rows [22, 23, 24, 25, 26,
+    ## 27, 28, 29, 30, 31, 32, 33, 34, 35, 43, 44, 45, 46, 47, 48, ...].
+
+``` r
+kable(ratio_summary, caption = "Summary of Ratio Variables")
+```
+
+| Variable | Mean | Median | Min | Max | Range | SD | Missing | living | lot | above | basement | built | renovated |
+|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| price | 553062.88 | 4.60e+05 | 0 | 2.659e+07 | 2.659e+07 | 583686.45 | 0 | NA | NA | NA | NA | NA | NA |
+| bedrooms | 3.40 | 3.00e+00 | 0 | 8.000e+00 | 8.000e+00 | 0.90 | 0 | NA | NA | NA | NA | NA | NA |
+| bathrooms | 2.16 | 2.25e+00 | 0 | 6.750e+00 | 6.750e+00 | 0.78 | 0 | NA | NA | NA | NA | NA | NA |
+| sqft | NA | NA | NA | NA | NA | NA | NA | 2143.64 | 14697.64 | 1831.35 | 312.29 | NA | NA |
+| sqft | NA | NA | NA | NA | NA | NA | NA | 1980.00 | 7676.00 | 1600.00 | 0.00 | NA | NA |
+| sqft | NA | NA | NA | NA | NA | NA | NA | 370.00 | 638.00 | 370.00 | 0.00 | NA | NA |
+| sqft | NA | NA | NA | NA | NA | NA | NA | 10040.00 | 1074218.00 | 8020.00 | 4820.00 | NA | NA |
+| sqft | NA | NA | NA | NA | NA | NA | NA | 9670.00 | 1073580.00 | 7650.00 | 4820.00 | NA | NA |
+| sqft | NA | NA | NA | NA | NA | NA | NA | 957.48 | 35876.84 | 861.38 | 464.35 | NA | NA |
+| sqft | NA | NA | NA | NA | NA | NA | NA | 0.00 | 0.00 | 0.00 | 0.00 | NA | NA |
+| floors | 1.51 | 1.50e+00 | 1 | 3.500e+00 | 2.500e+00 | 0.53 | 0 | NA | NA | NA | NA | NA | NA |
+| yr | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | 1970.81 | 808.37 |
+| yr | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | 1976.00 | 0.00 |
+| yr | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | 1900.00 | 0.00 |
+| yr | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | 2014.00 | 2014.00 |
+| yr | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | 114.00 | 2014.00 |
+| yr | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | 29.81 | 979.38 |
+| yr | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | 0.00 | 0.00 |
+
+Summary of Ratio Variables
 
 ``` r
 # 2. Summary Statistics
@@ -540,7 +674,7 @@ p11 <- ggplot(city_data, aes(x = reorder(city, price_per_sqft, FUN = median), y 
 print(p11)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-8-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
 
 ``` r
 # 8. Correlation Analysis
@@ -607,7 +741,7 @@ p12 <- ggcorrplot(correlation_matrix,
 print(p12)
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-8-2.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-11-2.png)<!-- -->
 
 ``` r
 # 9. Outlier Detection
@@ -660,7 +794,7 @@ print(p13)
     ## Warning: Removed 2 rows containing non-finite outside the scale range
     ## (`stat_bin()`).
 
-![](README_files/figure-gfm/unnamed-chunk-8-3.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-11-3.png)<!-- -->
 
 ``` r
 # 11. Summary of Key Findings
@@ -896,4 +1030,4 @@ plot(ATNHPIUS47894Q, main = "All-Transactions House Price Index (Washington-Arli
      col = "blue", lwd = 2, ylab = "HPI", xlab = "Year")
 ```
 
-![](README_files/figure-gfm/unnamed-chunk-9-1.png)<!-- -->
+![](README_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->

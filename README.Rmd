@@ -142,6 +142,8 @@ library(naniar)      # For missing data visualization
 library(ggcorrplot)  # For correlation plots
 library(gridExtra)   # For arranging multiple plots
 library(scales)      # For formatting labels
+library(knitr)
+library(dplyr)
 
 # Read the dataset
 # Assuming the CSV file is in the working directory
@@ -160,7 +162,75 @@ head(housing_data)
 
 # Basic dimensions
 cat("Dataset dimensions:", dim(housing_data)[1], "rows and", dim(housing_data)[2], "columns\n")
+```
 
+```{r}
+# --- Define variables by data type ---
+nominal_vars <- c("street", "city", "statezip", "country", "waterfront")
+ordinal_vars <- c("view", "condition")
+ratio_vars <- c("price", "bedrooms", "bathrooms", "sqft_living", "sqft_lot",
+                "floors", "sqft_above", "sqft_basement", "yr_built", "yr_renovated")
+
+# --- Helper function to calculate mode ---
+get_mode <- function(x) {
+  ux <- na.omit(unique(x))
+  ux[which.max(tabulate(match(x, ux)))]
+}
+
+# --- Summary for Nominal Variables ---
+nominal_summary <- housing_data %>%
+  select(all_of(nominal_vars)) %>%
+  summarise(across(everything(),
+                   list(
+                     Mode = ~as.character(get_mode(.)),
+                     Missing = ~as.character(sum(is.na(.)))
+                   )))
+
+# Now pivot — no type mismatch since everything is character
+nominal_summary_long <- nominal_summary %>%
+  pivot_longer(
+    everything(),
+    names_to = c("Variable", ".value"),
+    names_sep = "_"
+  )
+
+# Display nicely
+kable(nominal_summary_long, caption = "Summary of Nominal Variables (Mode & Missing Count)")
+
+# --- Summary for Ordinal Variables (Frequency counts) ---
+ordinal_summary <- lapply(housing_data[ordinal_vars], function(x) as.data.frame(table(x)))
+names(ordinal_summary) <- ordinal_vars
+
+# Display each ordinal variable as a separate table
+for (var in names(ordinal_summary)) {
+  cat("\n\n")
+  cat("### Frequencies for Ordinal Variable:", var, "\n")
+  print(kable(ordinal_summary[[var]], col.names = c(var, "Frequency")))
+}
+
+# --- Summary for Ratio Variables ---
+ratio_summary <- housing_data %>%
+  select(all_of(ratio_vars)) %>%
+  summarise(across(everything(),
+                   list(
+                     Mean = ~round(mean(., na.rm = TRUE), 2),
+                     Median = ~median(., na.rm = TRUE),
+                     Min = ~min(., na.rm = TRUE),
+                     Max = ~max(., na.rm = TRUE),
+                     Range = ~max(., na.rm = TRUE) - min(., na.rm = TRUE),
+                     SD = ~round(sd(., na.rm = TRUE), 2),
+                     Missing = ~sum(is.na(.))
+                   ))) %>%
+  pivot_longer(everything(),
+               names_to = c("Variable", ".value"),
+               names_sep = "_")
+
+kable(ratio_summary, caption = "Summary of Ratio Variables")
+
+
+```
+
+```{r}
 # 2. Summary Statistics
 # ---------------------
 # Numerical variable summaries
@@ -192,6 +262,10 @@ detailed_stats <- housing_data %>%
 
 print(detailed_stats)
 
+
+```
+
+```{r}
 # 3. Missing Value Analysis
 # -------------------------
 # Check for missing values
