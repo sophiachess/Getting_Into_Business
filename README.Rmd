@@ -2,8 +2,8 @@
 ---
 title: "README"
 output:
- github_document:
- pandoc_args: ["--wrap=none"]
+github_document:
+pandoc_args: ["--wrap=none"]
 always_allow_html: true
 ---
 
@@ -165,6 +165,22 @@ cat("Dataset dimensions:", dim(housing_data)[1], "rows and", dim(housing_data)[2
 ```
 
 ```{r}
+# 2. Summary Statistics
+# ---------------------
+# Numerical variable summaries
+summary(housing_data)
+
+numerical_summary <- housing_data %>%
+  select(price, bedrooms, bathrooms, sqft_living, sqft_lot, floors, 
+         waterfront, view, condition, sqft_above, sqft_basement, 
+         yr_built, yr_renovated) %>%
+  summary()
+
+print(numerical_summary)
+```
+
+```{r}
+# Summary Statistics for Data Type of the Attributes
 # --- Define variables by data type ---
 nominal_vars <- c("street", "city", "statezip", "country", "waterfront")
 ordinal_vars <- c("view", "condition")
@@ -226,43 +242,6 @@ ratio_summary <- housing_data %>%
                names_sep = "_")
 
 kable(ratio_summary, caption = "Summary of Ratio Variables")
-
-
-```
-
-```{r}
-# 2. Summary Statistics
-# ---------------------
-# Numerical variable summaries
-summary(housing_data)
-
-numerical_summary <- housing_data %>%
-  select(price, bedrooms, bathrooms, sqft_living, sqft_lot, floors, 
-         waterfront, view, condition, sqft_above, sqft_basement, 
-         yr_built, yr_renovated) %>%
-  summary()
-
-print(numerical_summary)
-
-# Calculate standard deviation, range, etc. for numerical variables
-detailed_stats <- housing_data %>%
-  select(price, bedrooms, bathrooms, sqft_living, sqft_lot, floors, 
-         waterfront, view, condition, sqft_above, sqft_basement, 
-         yr_built, yr_renovated) %>%
-  summarise(across(everything(), 
-                  list(
-                    mean = ~mean(., na.rm = TRUE),
-                    median = ~median(., na.rm = TRUE),
-                    min = ~min(., na.rm = TRUE),
-                    max = ~max(., na.rm = TRUE),
-                    range = ~max(., na.rm = TRUE) - min(., na.rm = TRUE),
-                    sd = ~sd(., na.rm = TRUE),
-                    n_missing = ~sum(is.na(.))
-                  )))
-
-print(detailed_stats)
-
-
 ```
 
 ```{r}
@@ -315,11 +294,11 @@ print(correlation_matrix)
 
 # Visualize correlation matrix
 p12 <- ggcorrplot(correlation_matrix, 
-           hc.order = TRUE, 
-           type = "lower", 
-           lab = TRUE, 
-           lab_size = 3,
-           colors = c("#6D9EC1", "white", "#E46726")) +
+                  hc.order = TRUE, 
+                  type = "lower", 
+                  lab = TRUE, 
+                  lab_size = 3,
+                  colors = c("#6D9EC1", "white", "#E46726")) +
   labs(title = "Correlation Matrix of Housing Features")
 
 print(p12)
