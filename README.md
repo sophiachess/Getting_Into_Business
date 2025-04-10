@@ -1,33 +1,26 @@
-README
-================
+    # Load necessary libraries
+    library(httr)  # For making authenticated requests
+    library(utils) # For downloading and unzipping
 
-``` r
-# Load necessary libraries
-library(httr)  # For making authenticated requests
-library(utils) # For downloading and unzipping
+    # Define the Kaggle dataset URL (Make sure your API token is set up)
+    url <- "https://www.kaggle.com/api/v1/datasets/download/fratzcan/usa-house-prices"
 
-# Define the Kaggle dataset URL (Make sure your API token is set up)
-url <- "https://www.kaggle.com/api/v1/datasets/download/fratzcan/usa-house-prices"
+    # Define download destination
+    destfile <- "./usa-house-prices.zip"
 
-# Define download destination
-destfile <- "./usa-house-prices.zip"
+    # Download the file
+    download.file(url, destfile, mode = "wb")
 
-# Download the file
-download.file(url, destfile, mode = "wb")
+    # Extract the ZIP file
+    unzip(destfile, exdir = "./usa-house-prices")
 
-# Extract the ZIP file
-unzip(destfile, exdir = "./usa-house-prices")
-
-# List the extracted files to check the exact CSV file name
-list.files("./usa-house-prices")
-```
+    # List the extracted files to check the exact CSV file name
+    list.files("./usa-house-prices")
 
     ## [1] "USA Housing Dataset.csv"
 
-``` r
-# Read the CSV file (Replace with the actual extracted filename)
-housing_data <- read.csv("./usa-house-prices/USA Housing Dataset.csv")
-```
+    # Read the CSV file (Replace with the actual extracted filename)
+    housing_data <- read.csv("./usa-house-prices/USA Housing Dataset.csv")
 
 # Understanding the Data
 
@@ -39,10 +32,8 @@ format. This suggests the dataset represents a **snapshot** of the
 housing market from May to July 2014, rather than a **time series
 spanning multiple years**.
 
-``` r
-# Checking unique dates in the dataset by inspecting the date column
-unique(housing_data$date)
-```
+    # Checking unique dates in the dataset by inspecting the date column
+    unique(housing_data$date)
 
     ##  [1] "2014-05-09 00:00:00" "2014-05-10 00:00:00" "2014-05-11 00:00:00"
     ##  [4] "2014-05-12 00:00:00" "2014-05-13 00:00:00" "2014-05-14 00:00:00"
@@ -74,10 +65,8 @@ The dataset covers housing properties in the state of **Washington
 (WA)**, primarily focusing on the **Seattle metropolitan area and
 surrounding regions**.
 
-``` r
-# Viewing unique city names
-unique(housing_data$city)
-```
+    # Viewing unique city names
+    unique(housing_data$city)
 
     ##  [1] "Seattle"            "Carnation"          "Issaquah"          
     ##  [4] "Maple Valley"       "Kent"               "Redmond"           
@@ -112,10 +101,8 @@ footage of basement, year house was built, year of last renovation, and
 address details including street name, city, state, zip code, and
 country.
 
-``` r
-# Checking structure of dataset
-str(housing_data)
-```
+    # Checking structure of dataset
+    str(housing_data)
 
     ## 'data.frame':    4140 obs. of  18 variables:
     ##  $ date         : chr  "2014-05-09 00:00:00" "2014-05-09 00:00:00" "2014-05-09 00:00:00" "2014-05-09 00:00:00" ...
@@ -143,55 +130,53 @@ Data Type Attributes **Nominal** (Categorical, Unordered): street, city,
 state, zip code, country **Ordinal** (Categorical, Ordered): view,
 condition, waterfront **Numerical (Interval)**: None detected
 **Numerical (Ratio)**: sale price, num bedrooms, num bathrooms,
-sqft_living, sqft_lot, num floors, sqft_above, sqft_basement, yr_built,
-yr_renovated, date of transaction
+sqft\_living, sqft\_lot, num floors, sqft\_above, sqft\_basement,
+yr\_built, yr\_renovated, date of transaction
 
-``` r
-classify_data_types <- function(df) {
-  # Initialize empty lists for each type
-  nominal <- c()
-  ordinal <- c()
-  interval <- c()
-  ratio <- c()
-  
-  for (colname in names(df)) {
-    col <- df[[colname]]
-    
-    # Guessing types
-    if (is.character(col) || is.factor(col)) {
-      # Factors *might* be ordinal if they have levels with order
-      if (is.ordered(col)) {
-        ordinal <- c(ordinal, colname)
-      } else {
-        nominal <- c(nominal, colname)
+    classify_data_types <- function(df) {
+      # Initialize empty lists for each type
+      nominal <- c()
+      ordinal <- c()
+      interval <- c()
+      ratio <- c()
+      
+      for (colname in names(df)) {
+        col <- df[[colname]]
+        
+        # Guessing types
+        if (is.character(col) || is.factor(col)) {
+          # Factors *might* be ordinal if they have levels with order
+          if (is.ordered(col)) {
+            ordinal <- c(ordinal, colname)
+          } else {
+            nominal <- c(nominal, colname)
+          }
+        } else if (is.numeric(col)) {
+          # Assume ratio by default (true zero exists)
+          ratio <- c(ratio, colname)
+        } else if (inherits(col, "Date") || inherits(col, "POSIXct")) {
+          # Dates are often treated as interval or ratio depending on use
+          interval <- c(interval, colname)
+        } else {
+          nominal <- c(nominal, colname)  # fallback
+        }
       }
-    } else if (is.numeric(col)) {
-      # Assume ratio by default (true zero exists)
-      ratio <- c(ratio, colname)
-    } else if (inherits(col, "Date") || inherits(col, "POSIXct")) {
-      # Dates are often treated as interval or ratio depending on use
-      interval <- c(interval, colname)
-    } else {
-      nominal <- c(nominal, colname)  # fallback
+      
+      # Create markdown table
+      cat("## Data Types of Attributes\n\n")
+      cat("| **Data Type** | **Attributes** |\n")
+      cat("|---------------|----------------|\n")
+      cat(sprintf("| **Nominal** | %s |\n", paste(nominal, collapse = ", ")))
+      cat(sprintf("| **Ordinal** | %s |\n", paste(ordinal, collapse = ", ")))
+      cat(sprintf("| **Interval** | %s |\n", ifelse(length(interval) > 0, paste(interval, collapse = ", "), "*(None detected)*")))
+      cat(sprintf("| **Ratio** | %s |\n", paste(ratio, collapse = ", ")))
     }
-  }
-  
-  # Create markdown table
-  cat("## Data Types of Attributes\n\n")
-  cat("| **Data Type** | **Attributes** |\n")
-  cat("|---------------|----------------|\n")
-  cat(sprintf("| **Nominal** | %s |\n", paste(nominal, collapse = ", ")))
-  cat(sprintf("| **Ordinal** | %s |\n", paste(ordinal, collapse = ", ")))
-  cat(sprintf("| **Interval** | %s |\n", ifelse(length(interval) > 0, paste(interval, collapse = ", "), "*(None detected)*")))
-  cat(sprintf("| **Ratio** | %s |\n", paste(ratio, collapse = ", ")))
-}
 
-housing_data$view <- factor(housing_data$view, ordered = TRUE)
-housing_data$condition <- factor(housing_data$condition, ordered = TRUE)
-housing_data$waterfront <- factor(housing_data$waterfront)  # If 0/1 or Yes/No
+    housing_data$view <- factor(housing_data$view, ordered = TRUE)
+    housing_data$condition <- factor(housing_data$condition, ordered = TRUE)
+    housing_data$waterfront <- factor(housing_data$waterfront)  # If 0/1 or Yes/No
 
-classify_data_types(housing_data)
-```
+    classify_data_types(housing_data)
 
     ## ## Data Types of Attributes
     ## 
@@ -204,10 +189,8 @@ classify_data_types(housing_data)
 
 # Data Summary & Initial Insights
 
-``` r
-# View first few rows
-head(housing_data)
-```
+    # View first few rows
+    head(housing_data)
 
     ##                  date   price bedrooms bathrooms sqft_living sqft_lot floors
     ## 1 2014-05-09 00:00:00  376000        3      2.00        1340     1384      3
@@ -231,10 +214,8 @@ head(housing_data)
     ## 5          10834 31st Ave SW      Seattle WA 98146     USA
     ## 6 Cedar to Green River Trail Maple Valley WA 98038     USA
 
-``` r
-# Load necessary libraries 
-library(tidyverse)
-```
+    # Load necessary libraries 
+    library(tidyverse)
 
     ## ── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
     ## ✔ dplyr     1.1.4     ✔ readr     2.1.5
@@ -247,11 +228,9 @@ library(tidyverse)
     ## ✖ dplyr::lag()    masks stats::lag()
     ## ℹ Use the conflicted package (<http://conflicted.r-lib.org/>) to force all conflicts to become errors
 
-``` r
-library(naniar)      # For missing data visualization
-library(ggcorrplot)  # For correlation plots
-library(gridExtra)   # For arranging multiple plots
-```
+    library(naniar)      # For missing data visualization
+    library(ggcorrplot)  # For correlation plots
+    library(gridExtra)   # For arranging multiple plots
 
     ## 
     ## Attaching package: 'gridExtra'
@@ -260,9 +239,7 @@ library(gridExtra)   # For arranging multiple plots
     ## 
     ##     combine
 
-``` r
-library(scales)      # For formatting labels
-```
+    library(scales)      # For formatting labels
 
     ## 
     ## Attaching package: 'scales'
@@ -275,21 +252,17 @@ library(scales)      # For formatting labels
     ## 
     ##     col_factor
 
-``` r
-library(knitr)
-library(dplyr)
+    library(knitr)
+    library(dplyr)
 
-# Read the dataset
-# Assuming the CSV file is in the working directory
-housing_data <- read.csv("USA Housing Dataset.csv")
-```
+    # Read the dataset
+    # Assuming the CSV file is in the working directory
+    housing_data <- read.csv("USA Housing Dataset.csv")
 
-``` r
-# 1. Basic Structure and Overview
-# ----------------------------------
-# Display dataset structure
-str(housing_data)
-```
+    # 1. Basic Structure and Overview
+    # ----------------------------------
+    # Display dataset structure
+    str(housing_data)
 
     ## 'data.frame':    4140 obs. of  18 variables:
     ##  $ date         : chr  "2014-05-09 00:00:00" "2014-05-09 00:00:00" "2014-05-09 00:00:00" "2014-05-09 00:00:00" ...
@@ -311,10 +284,8 @@ str(housing_data)
     ##  $ statezip     : chr  "WA 98103" "WA 98014" "WA 98029" "WA 98117" ...
     ##  $ country      : chr  "USA" "USA" "USA" "USA" ...
 
-``` r
-# Display first few rows
-head(housing_data)
-```
+    # Display first few rows
+    head(housing_data)
 
     ##                  date   price bedrooms bathrooms sqft_living sqft_lot floors
     ## 1 2014-05-09 00:00:00  376000        3      2.00        1340     1384      3
@@ -338,150 +309,15 @@ head(housing_data)
     ## 5          10834 31st Ave SW      Seattle WA 98146     USA
     ## 6 Cedar to Green River Trail Maple Valley WA 98038     USA
 
-``` r
-# Basic dimensions
-cat("Dataset dimensions:", dim(housing_data)[1], "rows and", dim(housing_data)[2], "columns\n")
-```
+    # Basic dimensions
+    cat("Dataset dimensions:", dim(housing_data)[1], "rows and", dim(housing_data)[2], "columns\n")
 
     ## Dataset dimensions: 4140 rows and 18 columns
 
-``` r
-# --- Define variables by data type ---
-nominal_vars <- c("street", "city", "statezip", "country", "waterfront")
-ordinal_vars <- c("view", "condition")
-ratio_vars <- c("price", "bedrooms", "bathrooms", "sqft_living", "sqft_lot",
-                "floors", "sqft_above", "sqft_basement", "yr_built", "yr_renovated")
-
-# --- Helper function to calculate mode ---
-get_mode <- function(x) {
-  ux <- na.omit(unique(x))
-  ux[which.max(tabulate(match(x, ux)))]
-}
-
-# --- Summary for Nominal Variables ---
-nominal_summary <- housing_data %>%
-  select(all_of(nominal_vars)) %>%
-  summarise(across(everything(),
-                   list(
-                     Mode = ~as.character(get_mode(.)),
-                     Missing = ~as.character(sum(is.na(.)))
-                   )))
-
-# Now pivot — no type mismatch since everything is character
-nominal_summary_long <- nominal_summary %>%
-  pivot_longer(
-    everything(),
-    names_to = c("Variable", ".value"),
-    names_sep = "_"
-  )
-
-# Display nicely
-kable(nominal_summary_long, caption = "Summary of Nominal Variables (Mode & Missing Count)")
-```
-
-| Variable   | Mode                  | Missing |
-|:-----------|:----------------------|:--------|
-| street     | 2520 Mulberry Walk NE | 0       |
-| city       | Seattle               | 0       |
-| statezip   | WA 98103              | 0       |
-| country    | USA                   | 0       |
-| waterfront | 0                     | 0       |
-
-Summary of Nominal Variables (Mode & Missing Count)
-
-``` r
-# --- Summary for Ordinal Variables (Frequency counts) ---
-ordinal_summary <- lapply(housing_data[ordinal_vars], function(x) as.data.frame(table(x)))
-names(ordinal_summary) <- ordinal_vars
-
-# Display each ordinal variable as a separate table
-for (var in names(ordinal_summary)) {
-  cat("\n\n")
-  cat("### Frequencies for Ordinal Variable:", var, "\n")
-  print(kable(ordinal_summary[[var]], col.names = c(var, "Frequency")))
-}
-```
-
-    ## 
-    ## 
-    ## ### Frequencies for Ordinal Variable: view 
-    ## 
-    ## 
-    ## |view | Frequency|
-    ## |:----|---------:|
-    ## |0    |      3722|
-    ## |1    |        56|
-    ## |2    |       186|
-    ## |3    |       111|
-    ## |4    |        65|
-    ## 
-    ## 
-    ## ### Frequencies for Ordinal Variable: condition 
-    ## 
-    ## 
-    ## |condition | Frequency|
-    ## |:---------|---------:|
-    ## |1         |         5|
-    ## |2         |        27|
-    ## |3         |      2596|
-    ## |4         |      1114|
-    ## |5         |       398|
-
-``` r
-# --- Summary for Ratio Variables ---
-ratio_summary <- housing_data %>%
-  select(all_of(ratio_vars)) %>%
-  summarise(across(everything(),
-                   list(
-                     Mean = ~round(mean(., na.rm = TRUE), 2),
-                     Median = ~median(., na.rm = TRUE),
-                     Min = ~min(., na.rm = TRUE),
-                     Max = ~max(., na.rm = TRUE),
-                     Range = ~max(., na.rm = TRUE) - min(., na.rm = TRUE),
-                     SD = ~round(sd(., na.rm = TRUE), 2),
-                     Missing = ~sum(is.na(.))
-                   ))) %>%
-  pivot_longer(everything(),
-               names_to = c("Variable", ".value"),
-               names_sep = "_")
-```
-
-    ## Warning: Expected 2 pieces. Additional pieces discarded in 42 rows [22, 23, 24, 25, 26,
-    ## 27, 28, 29, 30, 31, 32, 33, 34, 35, 43, 44, 45, 46, 47, 48, ...].
-
-``` r
-kable(ratio_summary, caption = "Summary of Ratio Variables")
-```
-
-| Variable | Mean | Median | Min | Max | Range | SD | Missing | living | lot | above | basement | built | renovated |
-|:---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| price | 553062.88 | 4.60e+05 | 0 | 2.659e+07 | 2.659e+07 | 583686.45 | 0 | NA | NA | NA | NA | NA | NA |
-| bedrooms | 3.40 | 3.00e+00 | 0 | 8.000e+00 | 8.000e+00 | 0.90 | 0 | NA | NA | NA | NA | NA | NA |
-| bathrooms | 2.16 | 2.25e+00 | 0 | 6.750e+00 | 6.750e+00 | 0.78 | 0 | NA | NA | NA | NA | NA | NA |
-| sqft | NA | NA | NA | NA | NA | NA | NA | 2143.64 | 14697.64 | 1831.35 | 312.29 | NA | NA |
-| sqft | NA | NA | NA | NA | NA | NA | NA | 1980.00 | 7676.00 | 1600.00 | 0.00 | NA | NA |
-| sqft | NA | NA | NA | NA | NA | NA | NA | 370.00 | 638.00 | 370.00 | 0.00 | NA | NA |
-| sqft | NA | NA | NA | NA | NA | NA | NA | 10040.00 | 1074218.00 | 8020.00 | 4820.00 | NA | NA |
-| sqft | NA | NA | NA | NA | NA | NA | NA | 9670.00 | 1073580.00 | 7650.00 | 4820.00 | NA | NA |
-| sqft | NA | NA | NA | NA | NA | NA | NA | 957.48 | 35876.84 | 861.38 | 464.35 | NA | NA |
-| sqft | NA | NA | NA | NA | NA | NA | NA | 0.00 | 0.00 | 0.00 | 0.00 | NA | NA |
-| floors | 1.51 | 1.50e+00 | 1 | 3.500e+00 | 2.500e+00 | 0.53 | 0 | NA | NA | NA | NA | NA | NA |
-| yr | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | 1970.81 | 808.37 |
-| yr | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | 1976.00 | 0.00 |
-| yr | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | 1900.00 | 0.00 |
-| yr | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | 2014.00 | 2014.00 |
-| yr | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | 114.00 | 2014.00 |
-| yr | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | 29.81 | 979.38 |
-| yr | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | NA | 0.00 | 0.00 |
-
-Summary of Ratio Variables
-
-``` r
-# 2. Summary Statistics
-# ---------------------
-# Numerical variable summaries
-summary(housing_data)
-```
+    # 2. Summary Statistics
+    # ---------------------
+    # Numerical variable summaries
+    summary(housing_data)
 
     ##      date               price             bedrooms     bathrooms    
     ##  Length:4140        Min.   :       0   Min.   :0.0   Min.   :0.000  
@@ -519,15 +355,13 @@ summary(housing_data)
     ##                                       
     ## 
 
-``` r
-numerical_summary <- housing_data %>%
-  select(price, bedrooms, bathrooms, sqft_living, sqft_lot, floors, 
-         waterfront, view, condition, sqft_above, sqft_basement, 
-         yr_built, yr_renovated) %>%
-  summary()
+    numerical_summary <- housing_data %>%
+      select(price, bedrooms, bathrooms, sqft_living, sqft_lot, floors, 
+             waterfront, view, condition, sqft_above, sqft_basement, 
+             yr_built, yr_renovated) %>%
+      summary()
 
-print(numerical_summary)
-```
+    print(numerical_summary)
 
     ##      price             bedrooms     bathrooms      sqft_living   
     ##  Min.   :       0   Min.   :0.0   Min.   :0.000   Min.   :  370  
@@ -558,80 +392,477 @@ print(numerical_summary)
     ##  3rd Qu.:1999.0  
     ##  Max.   :2014.0
 
-``` r
-# Calculate standard deviation, range, etc. for numerical variables
-detailed_stats <- housing_data %>%
-  select(price, bedrooms, bathrooms, sqft_living, sqft_lot, floors, 
-         waterfront, view, condition, sqft_above, sqft_basement, 
-         yr_built, yr_renovated) %>%
-  summarise(across(everything(), 
-                  list(
-                    mean = ~mean(., na.rm = TRUE),
-                    median = ~median(., na.rm = TRUE),
-                    min = ~min(., na.rm = TRUE),
-                    max = ~max(., na.rm = TRUE),
-                    range = ~max(., na.rm = TRUE) - min(., na.rm = TRUE),
-                    sd = ~sd(., na.rm = TRUE),
-                    n_missing = ~sum(is.na(.))
-                  )))
+    # Summary Statistics for Data Type of the Attributes
+    # --- Define variables by data type ---
+    nominal_vars <- c("street", "city", "statezip", "country", "waterfront")
+    ordinal_vars <- c("view", "condition")
+    ratio_vars <- c("price", "bedrooms", "bathrooms", "sqft_living", "sqft_lot",
+                    "floors", "sqft_above", "sqft_basement", "yr_built", "yr_renovated")
 
-print(detailed_stats)
-```
+    # --- Helper function to calculate mode ---
+    get_mode <- function(x) {
+      ux <- na.omit(unique(x))
+      ux[which.max(tabulate(match(x, ux)))]
+    }
 
-    ##   price_mean price_median price_min price_max price_range price_sd
-    ## 1   553062.9       460000         0  26590000    26590000 583686.5
-    ##   price_n_missing bedrooms_mean bedrooms_median bedrooms_min bedrooms_max
-    ## 1               0      3.400483               3            0            8
-    ##   bedrooms_range bedrooms_sd bedrooms_n_missing bathrooms_mean bathrooms_median
-    ## 1              8   0.9039388                  0       2.163043             2.25
-    ##   bathrooms_min bathrooms_max bathrooms_range bathrooms_sd bathrooms_n_missing
-    ## 1             0          6.75            6.75     0.784733                   0
-    ##   sqft_living_mean sqft_living_median sqft_living_min sqft_living_max
-    ## 1         2143.639               1980             370           10040
-    ##   sqft_living_range sqft_living_sd sqft_living_n_missing sqft_lot_mean
-    ## 1              9670       957.4816                     0      14697.64
-    ##   sqft_lot_median sqft_lot_min sqft_lot_max sqft_lot_range sqft_lot_sd
-    ## 1            7676          638      1074218        1073580    35876.84
-    ##   sqft_lot_n_missing floors_mean floors_median floors_min floors_max
-    ## 1                  0     1.51413           1.5          1        3.5
-    ##   floors_range floors_sd floors_n_missing waterfront_mean waterfront_median
-    ## 1          2.5 0.5349409                0     0.007487923                 0
-    ##   waterfront_min waterfront_max waterfront_range waterfront_sd
-    ## 1              0              1                1    0.08621861
-    ##   waterfront_n_missing view_mean view_median view_min view_max view_range
-    ## 1                    0 0.2466184           0        0        4          4
-    ##     view_sd view_n_missing condition_mean condition_median condition_min
-    ## 1 0.7906195              0       3.452415                3             1
-    ##   condition_max condition_range condition_sd condition_n_missing
-    ## 1             5               4    0.6785332                   0
-    ##   sqft_above_mean sqft_above_median sqft_above_min sqft_above_max
-    ## 1        1831.351              1600            370           8020
-    ##   sqft_above_range sqft_above_sd sqft_above_n_missing sqft_basement_mean
-    ## 1             7650      861.3829                    0           312.2874
-    ##   sqft_basement_median sqft_basement_min sqft_basement_max sqft_basement_range
-    ## 1                    0                 0              4820                4820
-    ##   sqft_basement_sd sqft_basement_n_missing yr_built_mean yr_built_median
-    ## 1         464.3492                       0      1970.814            1976
-    ##   yr_built_min yr_built_max yr_built_range yr_built_sd yr_built_n_missing
-    ## 1         1900         2014            114    29.80794                  0
-    ##   yr_renovated_mean yr_renovated_median yr_renovated_min yr_renovated_max
-    ## 1          808.3684                   0                0             2014
-    ##   yr_renovated_range yr_renovated_sd yr_renovated_n_missing
-    ## 1               2014        979.3805                      0
+    # --- Summary for Nominal Variables ---
+    nominal_summary <- housing_data %>%
+      select(all_of(nominal_vars)) %>%
+      summarise(across(everything(),
+                       list(
+                         Mode = ~as.character(get_mode(.)),
+                         Missing = ~as.character(sum(is.na(.)))
+                       )))
 
-``` r
-# 3. Missing Value Analysis
-# -------------------------
-# Check for missing values
-missing_values <- colSums(is.na(housing_data))
-cat("Missing values per column:\n")
-```
+    # Now pivot — no type mismatch since everything is character
+    nominal_summary_long <- nominal_summary %>%
+      pivot_longer(
+        everything(),
+        names_to = c("Variable", ".value"),
+        names_sep = "_"
+      )
+
+    # Display nicely
+    kable(nominal_summary_long, caption = "Summary of Nominal Variables (Mode & Missing Count)")
+
+<table>
+<caption>Summary of Nominal Variables (Mode &amp; Missing
+Count)</caption>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Variable</th>
+<th style="text-align: left;">Mode</th>
+<th style="text-align: left;">Missing</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">street</td>
+<td style="text-align: left;">2520 Mulberry Walk NE</td>
+<td style="text-align: left;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">city</td>
+<td style="text-align: left;">Seattle</td>
+<td style="text-align: left;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">statezip</td>
+<td style="text-align: left;">WA 98103</td>
+<td style="text-align: left;">0</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">country</td>
+<td style="text-align: left;">USA</td>
+<td style="text-align: left;">0</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">waterfront</td>
+<td style="text-align: left;">0</td>
+<td style="text-align: left;">0</td>
+</tr>
+</tbody>
+</table>
+
+Summary of Nominal Variables (Mode & Missing Count)
+
+    # --- Summary for Ordinal Variables (Frequency counts) ---
+    ordinal_summary <- lapply(housing_data[ordinal_vars], function(x) as.data.frame(table(x)))
+    names(ordinal_summary) <- ordinal_vars
+
+    # Display each ordinal variable as a separate table
+    for (var in names(ordinal_summary)) {
+      cat("\n\n")
+      cat("### Frequencies for Ordinal Variable:", var, "\n")
+      print(kable(ordinal_summary[[var]], col.names = c(var, "Frequency")))
+    }
+
+    ## 
+    ## 
+    ## ### Frequencies for Ordinal Variable: view 
+    ## 
+    ## 
+    ## |view | Frequency|
+    ## |:----|---------:|
+    ## |0    |      3722|
+    ## |1    |        56|
+    ## |2    |       186|
+    ## |3    |       111|
+    ## |4    |        65|
+    ## 
+    ## 
+    ## ### Frequencies for Ordinal Variable: condition 
+    ## 
+    ## 
+    ## |condition | Frequency|
+    ## |:---------|---------:|
+    ## |1         |         5|
+    ## |2         |        27|
+    ## |3         |      2596|
+    ## |4         |      1114|
+    ## |5         |       398|
+
+    # --- Summary for Ratio Variables ---
+    ratio_summary <- housing_data %>%
+      select(all_of(ratio_vars)) %>%
+      summarise(across(everything(),
+                       list(
+                         Mean = ~round(mean(., na.rm = TRUE), 2),
+                         Median = ~median(., na.rm = TRUE),
+                         Min = ~min(., na.rm = TRUE),
+                         Max = ~max(., na.rm = TRUE),
+                         Range = ~max(., na.rm = TRUE) - min(., na.rm = TRUE),
+                         SD = ~round(sd(., na.rm = TRUE), 2),
+                         Missing = ~sum(is.na(.))
+                       ))) %>%
+      pivot_longer(everything(),
+                   names_to = c("Variable", ".value"),
+                   names_sep = "_")
+
+    ## Warning: Expected 2 pieces. Additional pieces discarded in 42 rows [22, 23, 24, 25, 26,
+    ## 27, 28, 29, 30, 31, 32, 33, 34, 35, 43, 44, 45, 46, 47, 48, ...].
+
+    kable(ratio_summary, caption = "Summary of Ratio Variables")
+
+<table>
+<caption>Summary of Ratio Variables</caption>
+<colgroup>
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 3%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 7%" />
+<col style="width: 6%" />
+<col style="width: 7%" />
+<col style="width: 8%" />
+<col style="width: 6%" />
+<col style="width: 7%" />
+<col style="width: 6%" />
+<col style="width: 7%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: left;">Variable</th>
+<th style="text-align: right;">Mean</th>
+<th style="text-align: right;">Median</th>
+<th style="text-align: right;">Min</th>
+<th style="text-align: right;">Max</th>
+<th style="text-align: right;">Range</th>
+<th style="text-align: right;">SD</th>
+<th style="text-align: right;">Missing</th>
+<th style="text-align: right;">living</th>
+<th style="text-align: right;">lot</th>
+<th style="text-align: right;">above</th>
+<th style="text-align: right;">basement</th>
+<th style="text-align: right;">built</th>
+<th style="text-align: right;">renovated</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: left;">price</td>
+<td style="text-align: right;">553062.88</td>
+<td style="text-align: right;">4.60e+05</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">2.659e+07</td>
+<td style="text-align: right;">2.659e+07</td>
+<td style="text-align: right;">583686.45</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">bedrooms</td>
+<td style="text-align: right;">3.40</td>
+<td style="text-align: right;">3.00e+00</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">8.000e+00</td>
+<td style="text-align: right;">8.000e+00</td>
+<td style="text-align: right;">0.90</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">bathrooms</td>
+<td style="text-align: right;">2.16</td>
+<td style="text-align: right;">2.25e+00</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">6.750e+00</td>
+<td style="text-align: right;">6.750e+00</td>
+<td style="text-align: right;">0.78</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">sqft</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">2143.64</td>
+<td style="text-align: right;">14697.64</td>
+<td style="text-align: right;">1831.35</td>
+<td style="text-align: right;">312.29</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">sqft</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">1980.00</td>
+<td style="text-align: right;">7676.00</td>
+<td style="text-align: right;">1600.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">sqft</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">370.00</td>
+<td style="text-align: right;">638.00</td>
+<td style="text-align: right;">370.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">sqft</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">10040.00</td>
+<td style="text-align: right;">1074218.00</td>
+<td style="text-align: right;">8020.00</td>
+<td style="text-align: right;">4820.00</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">sqft</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">9670.00</td>
+<td style="text-align: right;">1073580.00</td>
+<td style="text-align: right;">7650.00</td>
+<td style="text-align: right;">4820.00</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">sqft</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">957.48</td>
+<td style="text-align: right;">35876.84</td>
+<td style="text-align: right;">861.38</td>
+<td style="text-align: right;">464.35</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">sqft</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">floors</td>
+<td style="text-align: right;">1.51</td>
+<td style="text-align: right;">1.50e+00</td>
+<td style="text-align: right;">1</td>
+<td style="text-align: right;">3.500e+00</td>
+<td style="text-align: right;">2.500e+00</td>
+<td style="text-align: right;">0.53</td>
+<td style="text-align: right;">0</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">yr</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">1970.81</td>
+<td style="text-align: right;">808.37</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">yr</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">1976.00</td>
+<td style="text-align: right;">0.00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">yr</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">1900.00</td>
+<td style="text-align: right;">0.00</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">yr</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">2014.00</td>
+<td style="text-align: right;">2014.00</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">yr</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">114.00</td>
+<td style="text-align: right;">2014.00</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">yr</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">29.81</td>
+<td style="text-align: right;">979.38</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">yr</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">NA</td>
+<td style="text-align: right;">0.00</td>
+<td style="text-align: right;">0.00</td>
+</tr>
+</tbody>
+</table>
+
+Summary of Ratio Variables
+
+    # 3. Missing Value Analysis
+    # -------------------------
+    # Check for missing values
+    missing_values <- colSums(is.na(housing_data))
+    cat("Missing values per column:\n")
 
     ## Missing values per column:
 
-``` r
-print(missing_values)
-```
+    print(missing_values)
 
     ##          date         price      bedrooms     bathrooms   sqft_living 
     ##             0             0             0             0             0 
@@ -642,51 +873,64 @@ print(missing_values)
     ##          city      statezip       country 
     ##             0             0             0
 
-``` r
-# Visualize missing data pattern (if there are missing values)
-if(sum(missing_values) > 0) {
-  miss_plot <- gg_miss_var(housing_data) + 
-    labs(title = "Missing Values by Variable")
-  print(miss_plot)
-}
+    # Visualize missing data pattern (if there are missing values)
+    if(sum(missing_values) > 0) {
+      miss_plot <- gg_miss_var(housing_data) + 
+        labs(title = "Missing Values by Variable")
+      print(miss_plot)
+    }
 
-# 7. Calculate price per square foot
-# ---------------------------------
-housing_data$price_per_sqft <- housing_data$price / housing_data$sqft_living
+    # 7. Calculate price per square foot
+    # ---------------------------------
+    housing_data$price_per_sqft <- housing_data$price / housing_data$sqft_living
 
-# Get the top 10 cities by count
-top_cities <- names(sort(table(housing_data$city), decreasing = TRUE)[1:10])
+    # Get the top 10 cities by count
+    top_cities <- names(sort(table(housing_data$city), decreasing = TRUE)[1:10])
 
-# Filter for those cities
-city_data <- housing_data %>%
-  filter(city %in% top_cities)
+    # Filter for those cities
+    city_data <- housing_data %>%
+      filter(city %in% top_cities)
 
-# Box plot of price per square foot by city
-p11 <- ggplot(city_data, aes(x = reorder(city, price_per_sqft, FUN = median), y = price_per_sqft)) +
-  geom_boxplot(fill = "lightblue") +
-  scale_y_continuous(labels = scales::dollar_format()) +
-  labs(title = "Price per Square Foot by City (Top 10 Cities)", 
-       x = "City", 
-       y = "Price per Square Foot") +
-  theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+    # Box plot of price per square foot by city
+    p11 <- ggplot(city_data, aes(x = reorder(city, price_per_sqft, FUN = median), y = price_per_sqft)) +
+      geom_boxplot(fill = "lightblue") +
+      scale_y_continuous(labels = scales::dollar_format()) +
+      labs(title = "Price per Square Foot by City (Top 10 Cities)", 
+           x = "City", 
+           y = "Price per Square Foot") +
+      theme_minimal() +
+      theme(axis.text.x = element_text(angle = 45, hjust = 1))
 
-print(p11)
-```
+    print(p11)
 
-![](README_files/figure-gfm/unnamed-chunk-11-1.png)<!-- -->
+![](README_files/figure-markdown_strict/unnamed-chunk-11-1.png)
 
-``` r
-# 8. Correlation Analysis
-# ----------------------
-# Create correlation matrix for numerical variables
-corr_vars <- housing_data %>%
-  select(price, bedrooms, bathrooms, sqft_living, sqft_lot, floors, 
-         waterfront, view, condition, sqft_above, sqft_basement, yr_built)
+# Explanation/Findings from the Box Plot
 
-correlation_matrix <- cor(corr_vars, use = "complete.obs")
-print(correlation_matrix)
-```
+It helps **visualize the distribution of price per square foot** for the
+top 10 cities in the dataset. It also compares how housing affordability
+varies across different locations.
+
+**Observations:**
+
+1.  There is a clear variability in pricing across cities, with some
+    cities showing much higher median prices.
+2.  A few cities have wider interquartile ranges and outliers,
+    indicating greater pricing diversity within those areas.
+3.  Other cities appear more uniform, suggesting consistent pricing per
+    square foot.
+
+<!-- -->
+
+    # 8. Correlation Analysis
+    # ----------------------
+    # Create correlation matrix for numerical variables
+    corr_vars <- housing_data %>%
+      select(price, bedrooms, bathrooms, sqft_living, sqft_lot, floors, 
+             waterfront, view, condition, sqft_above, sqft_basement, yr_built)
+
+    correlation_matrix <- cor(corr_vars, use = "complete.obs")
+    print(correlation_matrix)
 
     ##                    price     bedrooms   bathrooms sqft_living     sqft_lot
     ## price         1.00000000  0.188765142  0.31778537  0.41852804  0.045964114
@@ -728,41 +972,35 @@ print(correlation_matrix)
     ## sqft_basement    1.00000000 -0.16119668
     ## yr_built        -0.16119668  1.00000000
 
-``` r
-# Visualize correlation matrix
-p12 <- ggcorrplot(correlation_matrix, 
-           hc.order = TRUE, 
-           type = "lower", 
-           lab = TRUE, 
-           lab_size = 3,
-           colors = c("#6D9EC1", "white", "#E46726")) +
-  labs(title = "Correlation Matrix of Housing Features")
+    # Visualize correlation matrix
+    p12 <- ggcorrplot(correlation_matrix, 
+                      hc.order = TRUE, 
+                      type = "lower", 
+                      lab = TRUE, 
+                      lab_size = 3,
+                      colors = c("#6D9EC1", "white", "#E46726")) +
+      labs(title = "Correlation Matrix of Housing Features")
 
-print(p12)
-```
+    print(p12)
 
-![](README_files/figure-gfm/unnamed-chunk-11-2.png)<!-- -->
+![](README_files/figure-markdown_strict/unnamed-chunk-12-1.png)
 
-``` r
-# 9. Outlier Detection
-# ------------------
-# Calculate z-scores for price
-housing_data$price_zscore <- (housing_data$price - mean(housing_data$price)) / sd(housing_data$price)
+    # 9. Outlier Detection
+    # ------------------
+    # Calculate z-scores for price
+    housing_data$price_zscore <- (housing_data$price - mean(housing_data$price)) / sd(housing_data$price)
 
-# Identify outliers (z-score > 3 or < -3)
-price_outliers <- housing_data %>%
-  filter(abs(price_zscore) > 3) %>%
-  select(price, bedrooms, bathrooms, sqft_living, city, price_zscore) %>%
-  arrange(desc(price_zscore))
+    # Identify outliers (z-score > 3 or < -3)
+    price_outliers <- housing_data %>%
+      filter(abs(price_zscore) > 3) %>%
+      select(price, bedrooms, bathrooms, sqft_living, city, price_zscore) %>%
+      arrange(desc(price_zscore))
 
-cat("Number of price outliers:", nrow(price_outliers), "\n")
-```
+    cat("Number of price outliers:", nrow(price_outliers), "\n")
 
     ## Number of price outliers: 26
 
-``` r
-print(head(price_outliers, 10))
-```
+    print(head(price_outliers, 10))
 
     ##       price bedrooms bathrooms sqft_living          city price_zscore
     ## 1  26590000        3      2.00        1180          Kent    44.607746
@@ -776,81 +1014,65 @@ print(head(price_outliers, 10))
     ## 9   3000000        4      4.25        4850      Kirkland     4.192212
     ## 10  2888000        5      6.25        8670       Seattle     4.000328
 
-``` r
-# 10. Analyze bedrooms to bathrooms ratio
-# -------------------------------------
-housing_data$bed_bath_ratio <- housing_data$bedrooms / housing_data$bathrooms
+    # 10. Analyze bedrooms to bathrooms ratio
+    # -------------------------------------
+    housing_data$bed_bath_ratio <- housing_data$bedrooms / housing_data$bathrooms
 
-p13 <- ggplot(housing_data, aes(x = bed_bath_ratio)) +
-  geom_histogram(fill = "purple", color = "black", bins = 30, alpha = 0.7) +
-  labs(title = "Distribution of Bedroom to Bathroom Ratio", 
-       x = "Bedrooms/Bathrooms Ratio", 
-       y = "Count") +
-  theme_minimal()
+    p13 <- ggplot(housing_data, aes(x = bed_bath_ratio)) +
+      geom_histogram(fill = "purple", color = "black", bins = 30, alpha = 0.7) +
+      labs(title = "Distribution of Bedroom to Bathroom Ratio", 
+           x = "Bedrooms/Bathrooms Ratio", 
+           y = "Count") +
+      theme_minimal()
 
-print(p13)
-```
+    print(p13)
 
     ## Warning: Removed 2 rows containing non-finite outside the scale range
     ## (`stat_bin()`).
 
-![](README_files/figure-gfm/unnamed-chunk-11-3.png)<!-- -->
+![](README_files/figure-markdown_strict/unnamed-chunk-12-2.png)
 
-``` r
-# 11. Summary of Key Findings
-# --------------------------
-cat("\n----- KEY FINDINGS FROM EXPLORATORY DATA ANALYSIS -----\n")
-```
+    # 11. Summary of Key Findings
+    # --------------------------
+    cat("\n----- KEY FINDINGS FROM EXPLORATORY DATA ANALYSIS -----\n")
 
     ## 
     ## ----- KEY FINDINGS FROM EXPLORATORY DATA ANALYSIS -----
 
-``` r
-# Calculate and print key metrics
-average_price <- mean(housing_data$price)
-median_price <- median(housing_data$price)
-price_range <- max(housing_data$price) - min(housing_data$price)
-avg_price_per_sqft <- mean(housing_data$price_per_sqft)
-top_price_cities <- housing_data %>%
-  group_by(city) %>%
-  summarise(avg_price = mean(price),
-            count = n()) %>%
-  filter(count >= 20) %>%
-  arrange(desc(avg_price)) %>%
-  head(3)
+    # Calculate and print key metrics
+    average_price <- mean(housing_data$price)
+    median_price <- median(housing_data$price)
+    price_range <- max(housing_data$price) - min(housing_data$price)
+    avg_price_per_sqft <- mean(housing_data$price_per_sqft)
+    top_price_cities <- housing_data %>%
+      group_by(city) %>%
+      summarise(avg_price = mean(price),
+                count = n()) %>%
+      filter(count >= 20) %>%
+      arrange(desc(avg_price)) %>%
+      head(3)
 
-cat("Average home price: $", formatC(average_price, format="f", digits=2, big.mark=","), "\n")
-```
+    cat("Average home price: $", formatC(average_price, format="f", digits=2, big.mark=","), "\n")
 
     ## Average home price: $ 553,062.88
 
-``` r
-cat("Median home price: $", formatC(median_price, format="f", digits=2, big.mark=","), "\n")
-```
+    cat("Median home price: $", formatC(median_price, format="f", digits=2, big.mark=","), "\n")
 
     ## Median home price: $ 460,000.00
 
-``` r
-cat("Price range: $", formatC(price_range, format="f", digits=2, big.mark=","), "\n")
-```
+    cat("Price range: $", formatC(price_range, format="f", digits=2, big.mark=","), "\n")
 
     ## Price range: $ 26,590,000.00
 
-``` r
-cat("Average price per square foot: $", formatC(avg_price_per_sqft, format="f", digits=2), "\n")
-```
+    cat("Average price per square foot: $", formatC(avg_price_per_sqft, format="f", digits=2), "\n")
 
     ## Average price per square foot: $ 265.84
 
-``` r
-cat("Top 3 most expensive cities (min 20 properties):\n")
-```
+    cat("Top 3 most expensive cities (min 20 properties):\n")
 
     ## Top 3 most expensive cities (min 20 properties):
 
-``` r
-print(top_price_cities)
-```
+    print(top_price_cities)
 
     ## # A tibble: 3 × 3
     ##   city          avg_price count
@@ -859,54 +1081,42 @@ print(top_price_cities)
     ## 2 Bellevue        861636.   260
     ## 3 Sammamish       677731.   158
 
-``` r
-# Calculate strongest correlations with price
-price_correlations <- correlation_matrix[1, ]
-top_correlated <- sort(abs(price_correlations), decreasing = TRUE)[2:4]
-cat("Strongest correlations with price:\n")
-```
+    # Calculate strongest correlations with price
+    price_correlations <- correlation_matrix[1, ]
+    top_correlated <- sort(abs(price_correlations), decreasing = TRUE)[2:4]
+    cat("Strongest correlations with price:\n")
 
     ## Strongest correlations with price:
 
-``` r
-for(i in 1:3) {
-  var_name <- names(top_correlated)[i]
-  corr_value <- price_correlations[var_name]
-  cat(var_name, ": ", round(corr_value, 3), "\n")
-}
-```
+    for(i in 1:3) {
+      var_name <- names(top_correlated)[i]
+      corr_value <- price_correlations[var_name]
+      cat(var_name, ": ", round(corr_value, 3), "\n")
+    }
 
     ## sqft_living :  0.419 
     ## sqft_above :  0.355 
     ## bathrooms :  0.318
 
-``` r
-# Print dataset quality assessment
-cat("\nDataset Quality Assessment:\n")
-```
+    # Print dataset quality assessment
+    cat("\nDataset Quality Assessment:\n")
 
     ## 
     ## Dataset Quality Assessment:
 
-``` r
-cat("- Missing values: ", if(sum(missing_values) == 0) "None" else sum(missing_values), "\n")
-```
+    cat("- Missing values: ", if(sum(missing_values) == 0) "None" else sum(missing_values), "\n")
 
     ## - Missing values:  None
 
-``` r
-cat("- Detected outliers: ", nrow(price_outliers), "\n")
-```
+    cat("- Detected outliers: ", nrow(price_outliers), "\n")
 
     ## - Detected outliers:  26
 
-``` r
-cat("- Most common property type: ", 
-    names(which.max(table(housing_data$bedrooms))), 
-    "-bedroom homes (", 
-    round(max(table(housing_data$bedrooms))/nrow(housing_data)*100, 1), 
-    "%)\n", sep="")
-```
+    cat("- Most common property type: ", 
+        names(which.max(table(housing_data$bedrooms))), 
+        "-bedroom homes (", 
+        round(max(table(housing_data$bedrooms))/nrow(housing_data)*100, 1), 
+        "%)\n", sep="")
 
     ## - Most common property type: 3-bedroom homes (44.3%)
 
@@ -959,10 +1169,8 @@ characteristics and sales prices**, the **HPI dataset** provides a
 We can retrieve this dataset directly from FRED using the `quantmod`
 package in R:
 
-``` r
-# Load necessary package
-library(quantmod)
-```
+    # Load necessary package
+    library(quantmod)
 
     ## Loading required package: xts
 
@@ -1004,17 +1212,13 @@ library(quantmod)
     ##   method            from
     ##   as.zoo.data.frame zoo
 
-``` r
-# Retrieve the HPI data from FRED
-getSymbols("ATNHPIUS47894Q", src = "FRED")
-```
+    # Retrieve the HPI data from FRED
+    getSymbols("ATNHPIUS47894Q", src = "FRED")
 
     ## [1] "ATNHPIUS47894Q"
 
-``` r
-# View the first few rows
-head(ATNHPIUS47894Q)
-```
+    # View the first few rows
+    head(ATNHPIUS47894Q)
 
     ##            ATNHPIUS47894Q
     ## 1975-07-01          31.52
@@ -1024,10 +1228,27 @@ head(ATNHPIUS47894Q)
     ## 1976-07-01          33.42
     ## 1976-10-01          33.19
 
-``` r
-# Plot the data to visualize trends
-plot(ATNHPIUS47894Q, main = "All-Transactions House Price Index (Washington-Arlington-Alexandria)",
-     col = "blue", lwd = 2, ylab = "HPI", xlab = "Year")
-```
+    # Plot the data to visualize trends
+    plot(ATNHPIUS47894Q, 
+         main = "All-Transactions House Price Index (Washington-Arlington-Alexandria)",
+         col = "blue", lwd = 2,
+         ylab = "HPI", xlab = "Year")
 
-![](README_files/figure-gfm/unnamed-chunk-12-1.png)<!-- -->
+## ![](README_files/figure-markdown_strict/unnamed-chunk-13-1.png)
+
+## Why is this plot important?
+
+It shows the **All-Transactions House Price Index (HPI)** for the
+Washington-Arlington-Alexandria region over time.
+
+This visualization helps understand how housing prices have changed in
+this metropolitan area.
+
+**Observations:** 1. There is a steady increase in housing prices over
+the past few decades, especially after the 2012 recovery 2. There is a
+noticeable dip around 2008–2010, aligning with the U.S. housing market
+crash during the financial crisis 3. There is a recent rapid growth in
+prices, likely reflecting the pandemic-era housing demand surge and
+market inflation
+
+------------------------------------------------------------------------
